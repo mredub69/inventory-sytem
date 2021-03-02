@@ -15,6 +15,8 @@ namespace DevionGames.InventorySystem
         [SerializeField]
         private string m_WidgetName = "General Progressbar";
         [SerializeField]
+        private string m_Title = "";
+        [SerializeField]
         private float  m_Duration = 1f;
 
         private float m_Time = 0f;
@@ -30,7 +32,7 @@ namespace DevionGames.InventorySystem
                 Debug.LogWarning("Missing progressbar widget " + this.m_WidgetName + " in scene!");
                 return;
             }
-            this.m_Widget.Show();
+            this.m_Widget.Show(this.m_Title);
         }
 
         public override ActionStatus OnUpdate()
@@ -49,6 +51,12 @@ namespace DevionGames.InventorySystem
             }
             this.m_Widget.SetProgress(this.m_Time / this.m_Duration);
             return ActionStatus.Running;
+        }
+
+        public override void OnInterrupt()
+        {
+            if (this.m_Widget != null)
+                this.m_Widget.Close();
         }
     }
 }

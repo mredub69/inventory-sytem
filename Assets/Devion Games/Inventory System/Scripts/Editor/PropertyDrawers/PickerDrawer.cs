@@ -33,7 +33,7 @@ namespace DevionGames.InventorySystem
 					},
 					() => {
 						ItemDatabase db = EditorTools.CreateAsset<ItemDatabase>(true);
-					});
+					}, (attribute as PickerAttribute).acceptNull);
 			}
 		}
 
@@ -56,7 +56,5 @@ namespace DevionGames.InventorySystem
 			}
 			return selectableObjects;
 		}
-
-
 	}
 }

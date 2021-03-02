@@ -8,7 +8,11 @@ namespace DevionGames.InventorySystem
 {
     public abstract class VisibleItem : CallbackHandler
     {
-        [ItemPicker(true)]
+
+        public override string[] Callbacks => new string[] { "OnEquip", "OnUnEquip" };
+
+
+        [ItemPicker]
         public Item item;
 
         [SerializeField]
@@ -47,6 +51,10 @@ namespace DevionGames.InventorySystem
                     att.Instantiate(this.m_Handler);
                 }
             }
+            CallbackEventData data = new CallbackEventData();
+            data.AddData("Item", item);
+            data.AddData("Attachments", this.attachments);
+            Execute("OnEquip", data);
         }
 
         public virtual void OnItemUnEquip(Item item) {
@@ -59,6 +67,10 @@ namespace DevionGames.InventorySystem
                     att.gameObject.SetActive(false);
                 }
             }
+            CallbackEventData data = new CallbackEventData();
+            data.AddData("Item", item);
+            data.AddData("Attachments", this.attachments);
+            Execute("OnUnEquip", data);
         }
 
         protected void IgnoreCollision(GameObject gameObject) {
@@ -71,7 +83,7 @@ namespace DevionGames.InventorySystem
 
         [System.Serializable]
         public class Attachment {
-            [EquipmentPicker(true)]
+            [EquipmentPicker]
             public EquipmentRegion region;
             public GameObject prefab;
             public Vector3 position;
@@ -83,7 +95,7 @@ namespace DevionGames.InventorySystem
 
             public GameObject Instantiate(EquipmentHandler handler) {
                 gameObject = GameObject.Instantiate(prefab, handler.GetBone(region));
-
+                gameObject.SetActive(true);
                 //Calean prefab, not the best way, but keeps the project clean from duplicate prefabs.
                 Trigger trigger = gameObject.GetComponent<Trigger>();
                 if (trigger != null) {

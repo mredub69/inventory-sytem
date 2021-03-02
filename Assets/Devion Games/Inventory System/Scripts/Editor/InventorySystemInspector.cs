@@ -39,6 +39,8 @@ namespace DevionGames.InventorySystem
                     this.m_Database = AssetDatabase.LoadAssetAtPath<ItemDatabase>(path);
                 }
             }
+            toolbarIndex = EditorPrefs.GetInt("InventoryToolbarIndex");
+
             ResetChildEditors();
 
         }
@@ -48,6 +50,8 @@ namespace DevionGames.InventorySystem
             if (this.m_Database != null) {
                 EditorPrefs.SetString("ItemDatabasePath",AssetDatabase.GetAssetPath(this.m_Database));
             }
+            EditorPrefs.SetInt("InventoryToolbarIndex",toolbarIndex);
+
             if (m_ChildEditors != null)
             {
                 for (int i = 0; i < m_ChildEditors.Count; i++)
@@ -75,6 +79,7 @@ namespace DevionGames.InventorySystem
 
             if (m_ChildEditors != null)
             {
+                this.m_Database.RemoveNullReferences();
                 m_ChildEditors[toolbarIndex].OnGUI(new Rect(0f, 30f, position.width, position.height - 30f));
             }
         }
@@ -132,8 +137,9 @@ namespace DevionGames.InventorySystem
 
             if (this.m_Database != null)
             {
-                this.m_Database.items.RemoveAll(x => x == null);
+                this.m_Database.RemoveNullReferences();
                 EditorUtility.SetDirty(this.m_Database);
+
                 this.m_ChildEditors = new List<ICollectionEditor>();
                 this.m_ChildEditors.Add(new ItemCollectionEditor(this.m_Database, this.m_Database.items, this.m_Database.categories.Select(x => x.Name).ToList()));
                 this.m_ChildEditors.Add(new ScriptableObjectCollectionEditor<Currency>(this.m_Database, this.m_Database.currencies));

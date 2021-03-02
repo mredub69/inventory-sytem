@@ -184,7 +184,9 @@ namespace DevionGames.Graphs
                         {
                             value = EditorGUI.FloatField(fieldRect, (float)value);
                         } else if (port.fieldType == typeof(string)) {
-                            value = EditorGUI.TextField(fieldRect,(string)value);
+                            value = EditorGUI.TextField(fieldRect, (string)value);
+                        } else if (port.fieldType == typeof(AnimationCurve)) {
+                            value = EditorGUI.CurveField(fieldRect,(AnimationCurve) value);
                         }
                         if (EditorGUI.EndChangeCheck())
                         {
@@ -208,7 +210,7 @@ namespace DevionGames.Graphs
                 }
 
 
-                if (Event.current.type == EventType.Repaint && port.drawPort)
+                if (Event.current.type == EventType.Repaint )// && port.drawPort)
                 {
                     if (i > 0 && i < node.Ports.Count - 1)
                     {
@@ -227,8 +229,8 @@ namespace DevionGames.Graphs
                 Rect portRect = GetPortRect(port);
                 GUIStyle portStyle = (port.Connections.Count() > 0 || this.m_ConnectingPort == port) ? Styles.portConnected : Styles.port;
 
-                if(port.direction== PortDirection.Output && EditorApplication.isPlaying)
-                    GUI.Label(new Rect(portRect.x,portRect.y-18f,50f,20f),node.OnRequestValue(port).ToString());
+                /*if(port.direction== PortDirection.Output && EditorApplication.isPlaying)
+                    GUI.Label(new Rect(portRect.x,portRect.y-18f,50f,20f),node.OnRequestValue(port).ToString());*/
 
                 if (Event.current.type == EventType.Repaint && port.drawPort)
                 {
@@ -285,10 +287,15 @@ namespace DevionGames.Graphs
                     FieldInfo field = node.GetType().GetField(port.fieldName);
 
                     object value = field.GetValue(node);
-                    Vector2 temp = EditorStyles.textField.CalcSize(new GUIContent(value.ToString()));
-                    temp.x = Mathf.Clamp(temp.x,15f,float.MaxValue);
-                    if (temp.x > fieldWidth)
-                        fieldWidth = temp.x;
+                    float x = EditorGUIUtility.fieldWidth+20f;
+                    if (UnityTools.IsNumeric(value) || value is string)
+                    {
+                        Vector2 temp = EditorStyles.textField.CalcSize(new GUIContent(value.ToString()));
+                        x = Mathf.Clamp(temp.x, 15f, float.MaxValue); 
+                    }
+                   
+                    if (x > fieldWidth)
+                        fieldWidth = x;
                 }
             }
             return fieldWidth;
@@ -342,6 +349,9 @@ namespace DevionGames.Graphs
             {
                 headerSize = EditorStyles.label.CalcSize(new GUIContent(ObjectNames.NicifyVariableName(node.name)));
                 headerSize.x += NODE_CONTENT_OFFSET * 2;
+                if (headerSize.x > NODE_MIN_WIDTH)
+                    headerSize.x += NODE_CONTENT_OFFSET;
+
                 if (icon != null) { headerSize.x += icon.width+NODE_CONTENT_OFFSET; }
                 headerSize.y = NODE_HEADER_HEIGHT;
             }
@@ -460,13 +470,15 @@ namespace DevionGames.Graphs
         {
             Graph copy = new Graph();
             copy.serializationData = this.m_Graph.serializationData;
-            for (int i = 0; i < this.m_Selection.Count; i++) {
-                copy.serializationData.Replace(this.m_Selection[i].id,System.Guid.NewGuid().ToString());
-            }
             GraphUtility.Load(copy);
+           
             Node[] toDelete = copy.nodes.Where(x => !this.m_Selection.Exists(y => x.id == y.id)).ToArray();
             GraphUtility.RemoveNodes(copy, toDelete.Cast<FlowNode>().ToArray());
             GraphUtility.Save(copy);
+            for (int i = 0; i < copy.nodes.Count; i++)
+            {
+                copy.serializationData = copy.serializationData.Replace(copy.nodes[i].id, System.Guid.NewGuid().ToString());
+            }
             this.m_Copy = copy.serializationData;
         }
 

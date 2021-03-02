@@ -20,8 +20,9 @@ namespace DevionGames
 		private string m_HorizontalInput = "Horizontal";
 		[SerializeField]
 		private float m_SpeedMultiplier = 1f;
+		[EnumFlags]
 		[SerializeField]
-		private AimType m_AimType = AimType.Button;
+		private AimType m_AimType = AimType.Button | AimType.Selectable;
 		[SerializeField]
 		private string m_AimInput = "Fire2";
 
@@ -410,7 +411,15 @@ namespace DevionGames
 			}
 		}
 
-        private void Awake()
+		public Vector3 RootMotionForce
+		{
+			get
+			{
+				return this.m_RootMotionForce;
+			}
+		}
+
+		private void Awake()
         {
 			//Physics.queriesHitTriggers = false;
 			if (this.m_DontDestroyOnLoad)
@@ -485,7 +494,29 @@ namespace DevionGames
 
 			this.m_RawInput = new Vector3 (Input.GetAxis (this.m_HorizontalInput), 0, Input.GetAxis (this.m_ForwardInput));
 
-			switch (this.m_AimType) {
+			bool aimState = false;
+
+			if (this.m_AimType.HasFlag<AimType>(AimType.Button) && !this.m_GUIClick) {
+				aimState = Input.GetButton(this.m_AimInput);
+			} 
+			if (this.m_AimType.HasFlag<AimType>(AimType.Axis) && !aimState) {
+				float aim = Input.GetAxis(this.m_AimInput);
+				if (Mathf.Abs(aim) > 0.01f)
+				{
+					aimState = true;
+					this.m_RawInput.x = aim;
+				}
+			} 
+			if (this.m_AimType.HasFlag<AimType>(AimType.Toggle) && Input.GetButtonDown(this.m_AimInput) && !aimState) {
+				aimState = !IsAiming;
+			}
+			if (this.m_AimType.HasFlag<AimType>(AimType.Selectable) && !aimState) {
+				aimState = SelectableObject.current != null;
+			}
+			IsAiming = aimState;
+
+
+			/*switch (this.m_AimType) {
 			case AimType.Button:
 				IsAiming = Input.GetButton (this.m_AimInput) && !this.m_GUIClick;
 				break;
@@ -507,7 +538,7 @@ namespace DevionGames
 				case AimType.Selectable:
 					IsAiming = SelectableObject.current != null;
 					break;
-			}
+			}*/
 
 
             for (int j = 0; j < this.m_Motions.Count; j++) {
@@ -704,7 +735,7 @@ namespace DevionGames
 					}
 					if (!active && this.m_Animator.GetCurrentAnimatorStateInfo (j).shortNameHash != this.m_LayerStateMap [j].shortNameHash && !this.m_Animator.IsInTransition (j)) {
 						//Debug.Log("Current: "+this.m_Animator.GetCurrentAnimatorClipInfo(j)[0].clip.name);
-                        this.m_Animator.CrossFadeInFixedTime (this.m_LayerStateMap [j].shortNameHash, 0.2f);
+                        this.m_Animator.CrossFadeInFixedTime (this.m_LayerStateMap [j].shortNameHash, 0.3f);
 						//this.m_Animator.Update(0f);
 						//Debug.Log("Next: " + this.m_Animator.GetNextAnimatorClipInfo(j)[0].clip.name);
 					}
@@ -794,8 +825,12 @@ namespace DevionGames
 
 		private void TryStartMotion (MotionState motion)
 		{
+			if (motion.Layer > 0 && !this.m_Animator.GetCurrentAnimatorStateInfo(motion.Layer).IsTag("Interruptable")) {
+				return;
+			}
+
             if (!motion.IsActive && motion.CanStart ()) {
-                if (!string.IsNullOrEmpty (motion.GetDestinationState ())) {
+				if (!string.IsNullOrEmpty (motion.GetDestinationState ())) {
 					for (int j = 0; j < this.m_Motions.Count; j++) {
 						if (this.m_Motions [j].IsActive && this.m_Motions [j].Layer == motion.Layer && !string.IsNullOrEmpty (this.m_Motions [j].GetDestinationState ())) {
 							if (j > motion.Index) {
@@ -855,11 +890,13 @@ namespace DevionGames
             return null;
         }
 
-
 		private void Footsteps(AnimationEvent evt) {
-
-			if (this.m_IsGrounded && m_Rigidbody.velocity.sqrMagnitude > 0.5f)
+			if (!this.m_Animator.GetCurrentAnimatorStateInfo(1).IsName("Empty")) {
+				return;
+			}
+			if (this.m_IsGrounded && m_Rigidbody.velocity.sqrMagnitude > 0.5f && this.m_FootstepClips.Count > 0 && evt.animatorClipInfo.weight > 0.5f)
 			{
+				
 				float volume = evt.animatorClipInfo.weight;
 				AudioClip clip = this.m_FootstepClips[UnityEngine.Random.Range(0,this.m_FootstepClips.Count)];
 				PlaySound(clip, volume);
@@ -936,12 +973,12 @@ namespace DevionGames
 		}
     }
 
+	[System.Flags]
 	public enum AimType
 	{
-		None,
-		Button,
-		Axis,
-		Toggle,
-		Selectable
+		Button = 1,
+		Axis = 2,
+		Toggle = 4,
+		Selectable = 8
 	}
 }

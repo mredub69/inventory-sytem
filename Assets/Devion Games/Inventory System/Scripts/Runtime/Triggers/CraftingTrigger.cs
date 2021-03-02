@@ -63,13 +63,22 @@ namespace DevionGames.InventorySystem
         private Progressbar m_Progressbar;
         private Spinner m_AmountSpinner;
 
+
+
         protected override void Start()
         {
             base.Start();
             this.m_ResultStorageContainer = WidgetUtility.Find<ItemContainer>(this.m_ResultStorageWindow);
             this.m_RequiredIngredientsContainer = WidgetUtility.Find<ItemContainer>(this.m_RequiredIngredientsWindow);
             this.m_Progressbar = WidgetUtility.Find<Progressbar>(this.m_CraftingProgressbar);
+
+            ItemContainer container = GetComponent<ItemContainer>();
+            if (container != null) {
+                container.RegisterListener("OnShow", (CallbackEventData ev) => { InUse = true;  });
+                container.RegisterListener("OnClose", (CallbackEventData ev) => { InUse = false; });
+            }
         }
+
 
         public override bool OverrideUse(Slot slot, Item item)
         {
@@ -97,6 +106,19 @@ namespace DevionGames.InventorySystem
                 this.m_Progressbar.SetProgress(GetCraftingProgress());
             }
             
+        }
+
+        protected override void OnTriggerInterrupted()
+        {
+            StopAllCoroutines();
+            this.m_IsCrafting = false;
+            this.m_Progressbar.SetProgress(0f);
+            GameObject user = InventoryManager.current.PlayerInfo.gameObject;
+            if (user != null)
+                user.SendMessage("SetControllerActive", true, SendMessageOptions.DontRequireReceiver);
+
+            LoadCachedAnimatorStates();
+    
         }
 
         private float GetCraftingProgress()

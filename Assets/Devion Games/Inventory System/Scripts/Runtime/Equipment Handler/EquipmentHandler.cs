@@ -41,7 +41,6 @@ namespace DevionGames.InventorySystem
                 }
                 this.m_EquipmentContainer.OnAddItem += OnAddItem;
                 this.m_EquipmentContainer.OnRemoveItem += OnRemoveItem;
-
                 UpdateEquipment();
                 if (InventoryManager.current != null) {
                     InventoryManager.current.onDataLoaded.AddListener(UpdateEquipment);
@@ -75,13 +74,22 @@ namespace DevionGames.InventorySystem
                     SendMessage("AddModifier", new object[] { property.Name, value, (value <= 1f && value >= -1f) ? 1 : 0, item }, SendMessageOptions.DontRequireReceiver);
                 }
             }
+
             for (int i = 0; i < this.m_VisibleItems.Count; i++) {
                 VisibleItem visibleItem = this.m_VisibleItems[i];
                 if (visibleItem.item.Id == item.Id) {
                     visibleItem.OnItemEquip(item);
-                    break;
+                    return;
                 }
-            } 
+            }
+
+            StaticItem staticItem = gameObject.AddComponent<StaticItem>();
+            staticItem.item = InventoryManager.Database.items.Find(x=>x.Id== item.Id);
+            VisibleItem.Attachment attachment = new VisibleItem.Attachment();
+            attachment.prefab = item.EquipPrefab;
+            attachment.region = item.Region[0];
+            staticItem.attachments = new VisibleItem.Attachment[1] { attachment};
+            staticItem.OnItemEquip(item);
         }
 
         public void UnEquipItem(EquipmentItem item)
@@ -125,7 +133,7 @@ namespace DevionGames.InventorySystem
 
         [System.Serializable]
         public class EquipmentBone{
-            [EquipmentPicker(true)]
+            [EquipmentPicker]
             public EquipmentRegion region;
             public GameObject bone;
         }

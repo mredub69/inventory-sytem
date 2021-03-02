@@ -159,7 +159,7 @@ namespace DevionGames.InventorySystem
             yield return true;
             while (time < delay)
             {
-                time += Time.deltaTime;
+                time += Container.IgnoreTimeScale?Time.unscaledDeltaTime: Time.deltaTime;
                 yield return true;
             }
             if (InventoryManager.UI.tooltip != null && ObservedItem != null)
@@ -290,7 +290,6 @@ namespace DevionGames.InventorySystem
                 }else{
                     //Set the dragging slot
                     // draggedSlot = this;
-                    Debug.Log(eventData.pointerCurrentRaycast.gameObject);
                     if(base.m_Ícon == null || !base.m_Ícon.raycastTarget || eventData.pointerCurrentRaycast.gameObject == base.m_Ícon.gameObject)
                         dragObject = new DragObject(this);
     
@@ -346,6 +345,12 @@ namespace DevionGames.InventorySystem
         //Try to drop the item to ground
         private void DropItem()
         {
+            if (Container.IsLocked)
+            {
+                InventoryManager.Notifications.inUse.Show();
+                return;
+            }
+
             if (IsCooldown)
                 return;
 
@@ -373,6 +378,7 @@ namespace DevionGames.InventorySystem
                     Vector3 worldPos = hit.point;
                     Vector3 diff = worldPos - position;
                     float distance = diff.magnitude;
+                    //if player is null this does not work!
                     if (distance > (InventoryManager.DefaultSettings.maxDropDistance - (transform.localScale.x / 2)))
                     {
                         position = position + (diff / distance) * InventoryManager.DefaultSettings.maxDropDistance;
@@ -397,6 +403,10 @@ namespace DevionGames.InventorySystem
                     collection.Clear();
                     collection.Add(item);
                 }
+                PlaceItem placeItem = go.GetComponentInChildren<PlaceItem>(true);
+                if (placeItem != null)
+                    placeItem.enabled = true;
+
                 ItemContainer.RemoveItemCompletely(item);
                 Container.NotifyDropItem(item, go);
             }
@@ -455,6 +465,12 @@ namespace DevionGames.InventorySystem
         /// </summary>
         public override void Use()
         {
+            if (Container.IsLocked)
+            {
+                InventoryManager.Notifications.inUse.Show();
+                return;
+            }
+
             Container.NotifyTryUseItem(ObservedItem, this);
             //Check if the item can be used.
             if (CanUse())

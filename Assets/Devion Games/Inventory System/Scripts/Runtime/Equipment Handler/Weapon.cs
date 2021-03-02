@@ -7,7 +7,16 @@ namespace DevionGames.InventorySystem
     public abstract class Weapon : VisibleItem
     {
 
-        public override string[] Callbacks => new string[] {"OnUse","OnEndUse" };
+        public override string[] Callbacks
+        {
+            get
+            {
+                List<string> callbacks = new List<string>(base.Callbacks);
+                callbacks.Add("OnUse");
+                callbacks.Add("OnEndUse");
+                return callbacks.ToArray();
+            }
+        }
 
         [Header("Activation:")]
         [InspectorLabel("Input Name")]
@@ -93,13 +102,10 @@ namespace DevionGames.InventorySystem
 
         protected override void Update()
         {
-
-
-            if (this.m_Pause || UnityTools.IsPointerOverUI() || !this.m_CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsTag("Default")) {
-
+            if (this.m_Pause || !this.m_Handler.enabled || UnityTools.IsPointerOverUI() || !this.m_CharacterAnimator.GetCurrentAnimatorStateInfo(0).IsTag("Default") || ItemSlot.dragObject != null) {         
+                this.m_CharacterAnimator.SetBool("Item Use",false);
                 return; 
             }
-
  
             switch (this.m_ActivationType)
             {
@@ -121,7 +127,7 @@ namespace DevionGames.InventorySystem
 
             if (this.m_StartType != StartType.Down || !Input.GetButtonDown(this.m_UseInputName))
             {
-                if (this.m_StopType == StopType.Up && Input.GetButtonUp(this.m_UseInputName))
+                if (this.m_StopType == StopType.Up && (Input.GetButtonUp(this.m_UseInputName) || !Input.GetButton(this.m_UseInputName)))
                 {
                     this.TryStopUse();
                 }
@@ -152,6 +158,8 @@ namespace DevionGames.InventorySystem
             if (!this.m_InUse && CanUse()) {
                 StartUse();
             }
+            if(this.m_InUse)
+                this.m_CharacterAnimator.SetBool("Item Use", true);
         }
 
         protected virtual bool CanUse() {
@@ -162,15 +170,31 @@ namespace DevionGames.InventorySystem
                    ( this.m_CharacterAnimator.GetCurrentAnimatorStateInfo(i).IsName(this.m_UseState) || this.m_CharacterAnimator.IsInTransition(i))) {
                     return false;
                 }
-                   
             }
+
+            if (!this.m_CharacterAnimator.GetCurrentAnimatorStateInfo(GetUseLayer()).IsTag("Interruptable")) return false;
+
             Ray  ray = this.m_Camera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
             if (Physics.Raycast(ray, out hit)) {
-                return hit.collider.GetComponent<BaseTrigger>() ==null;
+                BaseTrigger trigger = hit.collider.GetComponentInParent<BaseTrigger>();
+
+                return trigger == null || !trigger.enabled;
             }
 
             return true; 
+        }
+
+        protected int GetUseLayer() {
+            int layers = this.m_CharacterAnimator.layerCount;
+            for (int i = 0; i < layers; i++)
+            {
+                if (this.m_CharacterAnimator.HasState(i, Animator.StringToHash(this.m_UseState)))
+                {
+                    return i;
+                }
+            }
+            return -1;
         }
 
         private void TryStopUse() {
@@ -190,8 +214,11 @@ namespace DevionGames.InventorySystem
                 CallbackEventData data = new CallbackEventData();
                 data.AddData("Item", this.m_CurrentEquipedItem);
                 Execute("OnEndUse", data);
+                //this.m_CharacterAnimator.CrossFadeInFixedTime("Empty", 0.15f);
+                this.m_CharacterAnimator.SetBool("Item Use",false);
             }
         }
+
 
         protected virtual void OnStopUse() { }
 
@@ -210,6 +237,13 @@ namespace DevionGames.InventorySystem
             CallbackEventData data = new CallbackEventData();
             data.AddData("Item", this.m_CurrentEquipedItem);
             Execute("OnUse", data);
+            this.m_CharacterAnimator.SetBool("Item Use", true);
+        }
+
+        private void UseItem()
+        {
+            if (this.m_IsActive)
+                (this.m_CurrentEquipedItem as EquipmentItem).Use();
         }
 
         private void OnEndUse() {
@@ -243,6 +277,8 @@ namespace DevionGames.InventorySystem
                 this.m_CharacterAnimator.CrossFadeInFixedTime(this.m_IdleState, 0.15f);
                 this.m_InUse = false;
             } else {
+
+                this.m_CharacterAnimator.SetBool("Item Use", false);
                 this.m_CharacterAnimator.SetInteger("Item ID",0);
                 for (int j = 0; j < this.m_DefaultStates.Length; j++)
                 {

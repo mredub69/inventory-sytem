@@ -49,6 +49,7 @@ namespace DevionGames.InventorySystem.Configuration
 
         public override void OnInspectorGUI()
         {
+            if (target == null) return;
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.PropertyField(this.m_Script);
             EditorGUI.EndDisabledGroup();
@@ -121,7 +122,6 @@ namespace DevionGames.InventorySystem.Configuration
 
                     if (EditorTools.Foldout(key, new GUIContent(key),keyMenu)){
                         EditorTools.BeginIndent(1, true);
-
                         if (!string.IsNullOrEmpty(uiData)){
                             GenericMenu uiMenu = new GenericMenu();
                             uiMenu.AddItem(new GUIContent("Delete UI"), false, () => {

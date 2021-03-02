@@ -19,26 +19,26 @@ namespace DevionGames.StatSystem
         {
             get
             {
-                Assert.IsNotNull(m_Current, "Requires a Stats Manager.Create one from Tools > Devion Games > Stat System > Create Stat Manager!");
+                Assert.IsNotNull(m_Current, "Requires a Stats Manager.Create one from Tools > Devion Games > Stat System > Create Stats Manager!");
                 return m_Current;
             }
         }
 
         [SerializeField]
-        private StatConfigurations m_Configurations = null;
+        private StatDatabase m_Database = null;
 
         /// <summary>
         /// Gets the item database. Configurate it inside the editor.
         /// </summary>
         /// <value>The database.</value>
-        public static StatConfigurations Configurations
+        public static StatDatabase Database
         {
             get
             {
                 if (StatsManager.current != null)
                 {
-                    Assert.IsNotNull(StatsManager.current.m_Configurations, "Please assign StatConfigurations to the Stats Manager!");
-                    return StatsManager.current.m_Configurations;
+                    Assert.IsNotNull(StatsManager.current.m_Database, "Please assign StatDatabase to the Stats Manager!");
+                    return StatsManager.current.m_Database;
                 }
                 return null;
             }
@@ -98,18 +98,18 @@ namespace DevionGames.StatSystem
 
         private static T GetSetting<T>() where T : Configuration.Settings
         {
-            if (StatsManager.Configurations != null)
+            if (StatsManager.Database != null)
             {
-                return (T)StatsManager.Configurations.settings.Where(x => x.GetType() == typeof(T)).FirstOrDefault();
+                return (T)StatsManager.Database.settings.Where(x => x.GetType() == typeof(T)).FirstOrDefault();
             }
             return default(T);
         }
 
-        private List<StatsHandler> m_StatsHandler;
-
         /// Don't destroy this object instance when loading new scenes.
         /// </summary>
         public bool dontDestroyOnLoad = true;
+
+        private List<StatsHandler> m_StatsHandler;
 
         /// <summary>
         /// Awake is called when the script instance is being loaded.
@@ -135,6 +135,7 @@ namespace DevionGames.StatSystem
                     }
                     DontDestroyOnLoad(gameObject);
                 }
+
                 this.m_StatsHandler = new List<StatsHandler>();
                 if (StatsManager.SavingLoading.autoSave)
                 {
@@ -153,44 +154,62 @@ namespace DevionGames.StatSystem
             }
         }
 
-        public static StatsHandler GetStatsHandler(string name) {
-            return StatsManager.current.m_StatsHandler.Find(x=>x.HandlerName == name);
-        }
-
-
-        public static void RegisterStatsHandler(StatsHandler handler) {
-            if (!StatsManager.current.m_StatsHandler.Contains(handler)) {
-                StatsManager.current.m_StatsHandler.Add(handler);
-            }
-        }
 
         public static void Save()
         {
-            string key = PlayerPrefs.GetString(StatsManager.SavingLoading.savingKey) + ".StatSystem";
-            StatsHandler[] results = Object.FindObjectsOfType<StatsHandler>().Where(x=>x.saveable).ToArray();
+            string key = PlayerPrefs.GetString(StatsManager.SavingLoading.savingKey, StatsManager.SavingLoading.savingKey);
+            Save(key);
+        }
+
+        public static void Save(string key)
+        {
+            StatsHandler[] results = Object.FindObjectsOfType<StatsHandler>().Where(x => x.saveable).ToArray();
             if (results.Length > 0)
             {
                 string data = JsonSerializer.Serialize(results);
-                foreach (StatsHandler handler in results) {
-                    foreach (Stat stat in handler.stats) {
-                        PlayerPrefs.SetFloat(key+"."+handler.HandlerName+"."+stat.Name+".Value",stat.Value);
-                        PlayerPrefs.SetFloat(key + "." + handler.HandlerName + "." + stat.Name + ".CurrentValue", stat.CurrentValue);
+
+              
+                //Required for Select Character Scene in RPG Kit, Workaound to display stats without StatsHandler
+                foreach (StatsHandler handler in results)
+                {
+                    foreach (Stat stat in handler.m_Stats)
+                    {
+                        PlayerPrefs.SetFloat(key + ".Stats." + handler.HandlerName + "." + stat.Name + ".Value", stat.Value);
+                        if(stat is Attribute attribute)
+                            PlayerPrefs.SetFloat(key + ".Stats." + handler.HandlerName + "." + stat.Name + ".CurrentValue", attribute.CurrentValue);
                     }
                 }
 
-                PlayerPrefs.SetString(key, data);
+                PlayerPrefs.SetString(key+".Stats", data);
+
+                List<string> keys = PlayerPrefs.GetString("StatSystemSavedKeys").Split(';').ToList();
+                keys.RemoveAll(x => string.IsNullOrEmpty(x));
+                if (!keys.Contains(key))
+                {
+                    keys.Add(key);
+                }
+                PlayerPrefs.SetString("StatSystemSavedKeys", string.Join(";", keys));
+
+    
                 if (StatsManager.DefaultSettings.debugMessages)
-                    Debug.Log("[Stat System] Stats saved " + key + data);
+                    Debug.Log("[Stat System] Stats saved: " + data);
             }
         }
 
-        public static void Load() {
-            string key = PlayerPrefs.GetString(StatsManager.SavingLoading.savingKey) + ".StatSystem";
-            string data = PlayerPrefs.GetString(key);
+        public static void Load()
+        {
+            string key = PlayerPrefs.GetString(StatsManager.SavingLoading.savingKey, StatsManager.SavingLoading.savingKey);
+            Load(key);
+        }
+
+        public static void Load(string key)
+        {
+            string data = PlayerPrefs.GetString(key+".Stats");
             if (string.IsNullOrEmpty(data)) { return; }
 
             List<StatsHandler> results = Object.FindObjectsOfType<StatsHandler>().Where(x => x.saveable).ToList();
             List<object> list = MiniJSON.Deserialize(data) as List<object>;
+
             for (int i = 0; i < list.Count; i++)
             {
                 Dictionary<string, object> handlerData = list[i] as Dictionary<string, object>;
@@ -199,12 +218,11 @@ namespace DevionGames.StatSystem
                 if (handler != null)
                 {
                     handler.SetObjectData(handlerData);
-                    handler.UpdateStats();
                 }
             }
-            
+
             if (StatsManager.DefaultSettings.debugMessages)
-                Debug.Log("[Stat System] Stats loaded " + StatsManager.SavingLoading.savingKey + ".StatSystem" + data);
+                Debug.Log("[Stat System] Stats loaded: "+ data);
         }
 
 
@@ -222,6 +240,19 @@ namespace DevionGames.StatSystem
                 yield return new WaitForSeconds(seconds);
                 Save();
             }
+        }
+
+        public static void RegisterStatsHandler(StatsHandler handler)
+        {
+            if (!StatsManager.current.m_StatsHandler.Contains(handler))
+            {
+                StatsManager.current.m_StatsHandler.Add(handler);
+            }
+        }
+
+        public static StatsHandler GetStatsHandler(string name)
+        {
+            return StatsManager.current.m_StatsHandler.Find(x => x.HandlerName == name);
         }
 
     }

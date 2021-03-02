@@ -92,6 +92,9 @@ namespace DevionGames
             AssemblyReloadEvents.afterAssemblyReload -= OnAfterAssemblyReload;
             EditorApplication.playModeStateChanged -= OnPlaymodeStateChange;
             Selection.selectionChanged -= OnSelectionChange;
+            GameObject prefab = PrefabUtility.GetNearestPrefabInstanceRoot(m_Target);
+            if (prefab != null)
+                PrefabUtility.ApplyPrefabInstance(prefab, InteractionMode.AutomatedAction);
         }
 
         private void Update()
@@ -169,7 +172,9 @@ namespace DevionGames
                     EditorGUI.indentLevel -= 1;
                 }
                 if (EditorGUI.EndChangeCheck())
+                {
                     EditorUtility.SetDirty(this.m_Target);
+                }
             }
             this.m_SerializedObject.ApplyModifiedProperties();
         }
@@ -202,10 +207,15 @@ namespace DevionGames
                 this.m_SerializedProperty.arraySize++;
                 this.m_SerializedProperty.GetArrayElementAtIndex(this.m_SerializedProperty.arraySize - 1).managedReferenceValue = value;
                 this.m_SerializedObject.ApplyModifiedProperties();
-            }else {
+                GameObject prefab = PrefabUtility.GetNearestPrefabInstanceRoot(m_Target);
+                if(prefab != null)
+                    PrefabUtility.ApplyPrefabInstance(prefab, InteractionMode.AutomatedAction);
+            }
+            else {
                 this.m_List.Add(value);
                 onChange.Invoke();
             }
+
         }
 
 
@@ -221,7 +231,10 @@ namespace DevionGames
             });
             menu.AddSeparator(string.Empty);
             menu.AddItem(new GUIContent("Remove " + this.m_ElementType.Name), false, delegate { 
-                this.m_List.RemoveAt(index); 
+                this.m_List.RemoveAt(index);
+                if (this.m_Target != null)
+                    EditorUtility.SetDirty(this.m_Target);
+
                 if (onChange != null)
                     onChange.Invoke();
             });
@@ -233,6 +246,8 @@ namespace DevionGames
                     object value = this.m_List[index];
                     this.m_List.RemoveAt(index);
                     this.m_List.Insert(index - 1, value);
+                    if (this.m_Target != null)
+                        EditorUtility.SetDirty(this.m_Target);
                     if (onChange != null)
                         onChange.Invoke();
                 });
@@ -249,6 +264,8 @@ namespace DevionGames
                     object value = this.m_List[index];
                     this.m_List.RemoveAt(index);
                     this.m_List.Insert(index + 1, value);
+                    if (this.m_Target != null)
+                        EditorUtility.SetDirty(this.m_Target);
                     if (onChange != null)
                         onChange.Invoke();
                 });
@@ -278,6 +295,9 @@ namespace DevionGames
                         fields[i].SetValue(instance, value);
                     }
                     this.m_List.Insert(index + 1, instance);
+                    if (this.m_Target != null)
+                        EditorUtility.SetDirty(this.m_Target);
+
                     if (onChange != null)
                         onChange.Invoke();
                 });
@@ -293,6 +313,9 @@ namespace DevionGames
                             object value = fields[i].GetValue(ObjectWindow.m_ObjectToCopy);
                             fields[i].SetValue(instance, value);
                         }
+                        if (this.m_Target != null)
+                            EditorUtility.SetDirty(this.m_Target);
+
                         if (onChange != null)
                             onChange.Invoke();
                     });

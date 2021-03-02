@@ -179,17 +179,20 @@ namespace DevionGames
 			if (!this.m_IsActive || !force && !this.CanStop ()) {
 				return;
 			}
+
 			if(PauseItemUpdate)
 				SendMessage("PauseItemUpdate", false, SendMessageOptions.DontRequireReceiver);
 			this.m_IsActive = false;
 			OnStop ();
 			if(!string.IsNullOrEmpty(GetDestinationState()))
 				m_Controller.CheckDefaultAnimatorStates();
-			CameraSettings preset = this.m_Camera.Presets.Where(x => x.Name == CameraPreset).FirstOrDefault();
+
+			this.m_Camera.Deactivate(CameraPreset);
+			/*CameraSettings preset = this.m_Camera.Presets.Where(x => x.Name == CameraPreset).FirstOrDefault();
 			if (preset != null && preset.Name != "Default")
 			{
 				preset.IsActive = false;
-			}
+			}*/
 			//Debug.Log("Stop Motion "+FriendlyName);
 
 		}
@@ -204,20 +207,31 @@ namespace DevionGames
 
 			OnStart ();
 
-			CameraSettings preset = this.m_Camera.Presets.Where(x => x.Name == CameraPreset).FirstOrDefault();
+			this.m_Camera.Activate(CameraPreset);
+			/*CameraSettings preset = this.m_Camera.Presets.Where(x => x.Name == CameraPreset).FirstOrDefault();
 			if (preset != null)
 			{
 				preset.IsActive = true;
-			}
+			}*/
 
 
 			string destinationState = GetDestinationState ();
 			if (!string.IsNullOrEmpty (destinationState)) {
 				m_Animator.CrossFadeInFixedTime (destinationState, TransitionDuration);
-
 			}
 	
 			//Debug.Log("Start Motion " + FriendlyName);
+		}
+
+		public bool IsPlaying() {
+			int layers = this.m_Animator.layerCount;
+			string destinationState = GetDestinationState();
+			for (int i = 0; i < layers; i++) {
+				AnimatorStateInfo info = this.m_Animator.GetCurrentAnimatorStateInfo(i);
+				if (info.IsName(destinationState))
+					return true;
+			}
+			return false;
 		}
 
 
@@ -292,7 +306,7 @@ namespace DevionGames
 			while (elapsedTime < time) {
 				transform.position = Vector3.Lerp (startingPosition, position, (elapsedTime / time));
 				transform.rotation = Quaternion.Slerp (startingRotation, rotation, (elapsedTime / time));
-				elapsedTime += Time.deltaTime;
+				elapsedTime += Time.fixedDeltaTime;
 				yield return new WaitForEndOfFrame ();
 			}
 			this.m_InPosition = true;

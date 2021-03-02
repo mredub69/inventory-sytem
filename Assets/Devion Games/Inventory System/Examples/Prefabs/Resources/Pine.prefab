@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 5260662605231711914}
   - component: {fileID: 2724115481486590906}
   - component: {fileID: 3689918516534293710}
-  - component: {fileID: 7349071048772768305}
+  - component: {fileID: -3083359565535438053}
   - component: {fileID: 3423895638930777064}
   - component: {fileID: 3847510984459226090}
   - component: {fileID: 742319302}
@@ -116,7 +116,7 @@ MonoBehaviour:
   m_Sprite: {fileID: 21300000, guid: 81e9ec1d21e1f8f43a06e7e75c17fc37, type: 3}
   m_Size: {x: 32, y: 32}
   m_AnimatorState: Cursor
---- !u!114 &7349071048772768305
+--- !u!114 &-3083359565535438053
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -125,12 +125,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1176372614129170148}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0cda3b9d89a55f143bf4546d43b708d7, type: 3}
+  m_Script: {fileID: 11500000, guid: 95ff8949b55037043a6183d61fd8dcff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_DisplayType: 8
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Offset: {x: 0, y: -3, z: 0}
+  m_Title: Pine
+  m_Instruction: Chop
 --- !u!114 &3423895638930777064
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -177,6 +176,7 @@ MonoBehaviour:
   useDistance: 1.5
   triggerType: 43
   key: 102
+  actionTemplate: {fileID: 0}
   actions:
   - id: 0
   - id: 1
@@ -188,6 +188,7 @@ MonoBehaviour:
   - id: 7
   - id: 8
   - id: 9
+  m_Interruptable: 1
   references:
     version: 1
     00000000:
@@ -236,6 +237,7 @@ MonoBehaviour:
         m_Type: DevionGames.InventorySystem.ShowProgressbar
         m_Enabled: 1
         m_WidgetName: General Progressbar
+        m_Title: Cutting Tree
         m_Duration: 6
     00000005:
       type: {class: SetEnabled, ns: DevionGames, asm: DevionGames.Triggers}
@@ -253,6 +255,22 @@ MonoBehaviour:
         m_WindowName: Skills
         m_Skill: {fileID: 6305893422732665131, guid: e1f045c49e197e3439b99da9edbc5ba3,
           type: 2}
+        m_SuccessNotification:
+          title: 
+          text: 
+          color: {r: 1, g: 1, b: 1, a: 1}
+          icon: {fileID: 0}
+          delay: 2
+          duration: 2
+          ignoreTimeScale: 1
+        m_FailureNotification:
+          title: 
+          text: 
+          color: {r: 1, g: 1, b: 1, a: 1}
+          icon: {fileID: 0}
+          delay: 2
+          duration: 2
+          ignoreTimeScale: 1
     00000007:
       type: {class: Pickup, ns: DevionGames.InventorySystem, asm: DevionGames.InventorySystem}
       data:
@@ -281,7 +299,7 @@ MonoBehaviour:
           m_ArgumentType: 4
         - m_BoolValue: 0
           m_IntValue: 0
-          m_FloatValue: -30
+          m_FloatValue: -300
           m_StringValue: 
           m_Vector2Value: {x: 0, y: 0}
           m_Vector3Value: {x: 0, y: 0, z: 0}
